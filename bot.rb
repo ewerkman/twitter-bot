@@ -4,7 +4,7 @@ require "pg"
 module TwitterBot
     
     def self.conn()
-       PG.connect(dbname: ENV['DB_NAME']) 
+       PG.connect(dbname: ENV['DB_NAME'], host: ENV['DB_HOST'], user: ENV['DB_USER'], password: ENV['DB_PASS']) 
     end
 
     def self.puts_data(tweet)

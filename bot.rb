@@ -16,7 +16,7 @@ module TwitterBot
         puts "<------------------------>"
     end
     
-    def self.set_tweet_id(id, date)
+    def self.set_since_id(id, date)
         conn.exec_params("INSERT INTO last_tweet_id (tweet_id, tweet_date) VALUES ($1, $2)", [id, date])
     end
     
@@ -38,21 +38,28 @@ module TwitterBot
     
     search_term = '("#sitecore") AND ("commerce" OR "commerce server" OR "ecommerce" OR "storefront")'
     
-    #client.search(search_term, result_type: "recent", include_entities: true).take(15).each do |tweet|
+    #client.search(search_term, result_type: "recent", include_entities: true).take(20).each do |tweet|
     client.search(search_term, result_type: "recent", include_entities: true, since_id: get_last_id()).take(15).each do |tweet|
         
-        # only post if not a retweet && isn't a paper.li tweet
-        if (tweet.retweeted_status.nil?) && !(tweet.urls.first.display_url.include? "paper.li")
-            
-            # set tweet id and date in DB
-            set_tweet_id(tweet.id, DateTime.parse(tweet.created_at.to_s).strftime("%m/%d/%Y"))
-            
-            # write tweet data
-            puts_data(tweet)
-            
-            # POST TWEET
-            client.retweet(tweet)
+        # no retweets
+        if !tweet.retweeted_status.nil?
+            next
         end
         
+        # no Paper.li tweets
+        tweet.urls.each do |u|
+            @next = true if u.expanded_url.to_s.include?("paper.li")
+            break
+        end
+        
+        # move to next tweet if Paper.li
+        if @next
+            next
+        end
+
+        # do tweet things
+        set_since_id(tweet.id, DateTime.parse(tweet.created_at.to_s).strftime("%m/%d/%Y"))
+        puts_data(tweet)
+        client.retweet(tweet)
     end
 end
